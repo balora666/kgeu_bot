@@ -1,0 +1,68 @@
+import telebot
+from telebot import types
+
+bot = telebot.TeleBot('7728736771:AAFoiBvkWt6vEP-zigitKe5RHSfLMzhHrmU')
+
+# Словарь для хранения текста для каждого предмета
+предметы_текст = {
+    'Физика': 'Завести две тетрадки: 1) для реферата (темы будут позже); \n2) для ответов на вопросы (список вопросов будет позже).',
+    'Основы Российской гос-ти': '3 задания: \n1.Записаться на курс: Основы российской государственности - 2023 -> Зайти в Раздел 3 -> Задание: Круглый стол (прочитать отрывки из книги и ответить на 8 вопросов); \n2. Контрольная работа: РАЗДЕЛ для студентов УСКОРЕННОЙ формы обучения [13-15 страниц текста в ворде (титульник, содержание, литература - крч реферат) вариант строго по 2м последним цифрам студ билета]; \n3. Найти на мудле РАЗДЕЛ "Итоговая аттестация" -> Выполнить "Итоговый тест по курсу ОРГ".'
+}
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    """Обработчик команды /start. Создает клавиатуру с выбором предметов."""
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)  # Создание клавиатуры
+    btn1 = types.KeyboardButton('Физика')
+    btn2 = types.KeyboardButton('Основы Российской гос-ти')
+    markup.add(btn1, btn2)
+    bot.send_message(message.chat.id, 'Выберите предмет', reply_markup=markup)  # Отправка сообщения с клавиатурой
+
+
+@bot.message_handler(func=lambda message: True)
+def handle_text(message):
+    """Обработчик текстовых сообщений. Определяет, какой предмет выбран."""
+    chat_id = message.chat.id
+    text = message.text
+
+    if text in предметы_текст:
+        bot.send_message(chat_id, предметы_текст[text], parse_mode='Markdown')
+    elif text == 'Редактировать':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        btn1 = types.KeyboardButton('Физика')
+        btn2 = types.KeyboardButton('Основы Российской гос-ти')
+        markup.add(btn1, btn2)
+        bot.send_message(chat_id, "Какой предмет вы хотите отредактировать?", reply_markup=markup)
+        bot.register_next_step_handler(message, get_subject_to_edit)
+    else:
+         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)  # Создание клавиатуры
+         btn1 = types.KeyboardButton('Физика')
+         btn2 = types.KeyboardButton('Основы Российской гос-ти')
+         btn3 = types.KeyboardButton('Редактировать') #Кнопка для редактирования
+         markup.add(btn1, btn2, btn3)
+         bot.send_message(chat_id, 'Выберите предмет или действие', reply_markup=markup)
+
+def get_subject_to_edit(message):
+    """Получает название предмета, который нужно отредактировать."""
+    subject = message.text
+    if subject in предметы_текст:
+        bot.send_message(message.chat.id, f"Введите новый текст для предмета '{subject}'.")
+        bot.register_next_step_handler(message, edit_subject_text, subject=subject)
+    else:
+        bot.send_message(message.chat.id, "Некорректный ввод. Пожалуйста, выберите предмет из списка.")
+
+def edit_subject_text(message, subject):
+    """Редактирует текст для выбранного предмета."""
+    предметы_текст[subject] = message.text
+    bot.send_message(message.chat.id, f"Текст для предмета '{subject}' успешно изменен!")
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)  # Создание клавиатуры
+    btn1 = types.KeyboardButton('Физика')
+    btn2 = types.KeyboardButton('Основы Российской гос-ти')
+    btn3 = types.KeyboardButton('Редактировать')  # Кнопка для редактирования
+    markup.add(btn1, btn2, btn3)
+    bot.send_message(message.chat.id, 'Выберите предмет или действие', reply_markup=markup)
+
+bot.infinity_polling(none_stop=True, interval=0)
